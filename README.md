@@ -5,6 +5,7 @@ All the information and documentation about OpenDoas itself can be found in [the
 This fork adds the ability to set password prompt and error message using the `DOAS_PROMPT` and `DOAS_AUTH_FAIL_MSG` environment variables
 
 Example of usage:
+
 ![](example.png)
 
 TODO:
