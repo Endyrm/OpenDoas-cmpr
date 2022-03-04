@@ -30,6 +30,7 @@
 #endif
 #include <shadow.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -47,7 +48,7 @@ shadowauth(const char *myname, int persist)
 	const char *hash;
 	char *encrypted;
 	struct passwd *pw;
-	char *challenge, *response, rbuf[1024], cbuf[128];
+	char *challenge, *passprompt, *authfailmsg, *response, rbuf[1024], cbuf[128];
 
 #ifdef USE_TIMESTAMP
 	int fd = -1;
@@ -61,6 +62,12 @@ shadowauth(const char *myname, int persist)
 	(void) persist;
 #endif
 
+	passprompt = getenv("DOAS_PROMPT");
+	authfailmsg = getenv("DOAS_AUTH_FAIL_MSG");
+
+	if(passprompt == NULL) passprompt = "\rdoas (%.32s@%.32s) password: ";
+	if(authfailmsg == NULL) authfailmsg = "Authentication failed";
+
 	if ((pw = getpwnam(myname)) == NULL)
 		err(1, "getpwnam");
 
@@ -68,17 +75,17 @@ shadowauth(const char *myname, int persist)
 	if (hash[0] == 'x' && hash[1] == '\0') {
 		struct spwd *sp;
 		if ((sp = getspnam(myname)) == NULL)
-			errx(1, "Authentication failed");
+			errx(1, "%s", authfailmsg);
 		hash = sp->sp_pwdp;
 	} else if (hash[0] != '*') {
-		errx(1, "Authentication failed");
+		errx(1, "%s", authfailmsg);
 	}
 
 	char host[HOST_NAME_MAX + 1];
 	if (gethostname(host, sizeof(host)))
 		snprintf(host, sizeof(host), "?");
 	snprintf(cbuf, sizeof(cbuf),
-			"\rdoas (%.32s@%.32s) password: ", myname, host);
+			passprompt, myname, host);
 	challenge = cbuf;
 
 	response = readpassphrase(challenge, rbuf, sizeof(rbuf), RPP_REQUIRE_TTY);
@@ -91,12 +98,12 @@ shadowauth(const char *myname, int persist)
 		err(1, "readpassphrase");
 	if ((encrypted = crypt(response, hash)) == NULL) {
 		explicit_bzero(rbuf, sizeof(rbuf));
-		errx(1, "Authentication failed");
+		errx(1, "%s", authfailmsg);
 	}
 	explicit_bzero(rbuf, sizeof(rbuf));
 	if (strcmp(encrypted, hash) != 0) {
 		syslog(LOG_AUTHPRIV | LOG_NOTICE, "failed auth for %s", myname);
-		errx(1, "Authentication failed");
+		errx(1, "%s", authfailmsg);
 	}
 
 #ifdef USE_TIMESTAMP

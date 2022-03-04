@@ -235,6 +235,7 @@ pamauth(const char *user, const char *myname, int interactive, int nopass, int p
 	const char *ttydev;
 	pid_t child;
 	int ret, sess = 0, cred = 0;
+	char *passprompt, *authfailmsg;
 
 #ifdef USE_TIMESTAMP
 	int fd = -1;
@@ -243,8 +244,14 @@ pamauth(const char *user, const char *myname, int interactive, int nopass, int p
 	(void) persist;
 #endif
 
+	passprompt = getenv("DOAS_PROMPT");
+	authfailmsg = getenv("DOAS_AUTH_FAIL_MSG");
+
+	if(passprompt == NULL) passprompt = "\rdoas (%.32s@%.32s) password: ";
+	if(authfailmsg == NULL) authfailmsg = "Authentication failed";
+
 	if (!user || !myname)
-		errx(1, "Authentication failed");
+		errx(1, "%s", authfailmsg);
 
 	ret = pam_start(PAM_SERVICE_NAME, myname, &conv, &pamh);
 	if (ret != PAM_SUCCESS)
@@ -283,14 +290,14 @@ pamauth(const char *user, const char *myname, int interactive, int nopass, int p
 		if (gethostname(host, sizeof(host)))
 			snprintf(host, sizeof(host), "?");
 		snprintf(doas_prompt, sizeof(doas_prompt),
-		    "\rdoas (%.32s@%.32s) password: ", myname, host);
+		    passprompt, myname, host);
 
 		/* authenticate */
 		ret = pam_authenticate(pamh, 0);
 		if (ret != PAM_SUCCESS) {
 			pamcleanup(ret, sess, cred);
 			syslog(LOG_AUTHPRIV | LOG_NOTICE, "failed auth for %s", myname);
-			errx(1, "Authentication failed");
+			errx(1, "%s", authfailmsg);
 		}
 	}
 
@@ -303,7 +310,7 @@ pamauth(const char *user, const char *myname, int interactive, int nopass, int p
 	if (ret != PAM_SUCCESS) {
 		pamcleanup(ret, sess, cred);
 		syslog(LOG_AUTHPRIV | LOG_NOTICE, "failed auth for %s", myname);
-		errx(1, "Authentication failed");
+		errx(1, "%s", authfailmsg);
 	}
 
 	/* set PAM_USER to the user we want to be */
