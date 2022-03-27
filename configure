@@ -60,6 +60,7 @@ for x; do
 	--without-pam) WITHOUT_PAM=yes ;;
 	--without-shadow) WITHOUT_SHADOW=yes ;;
 	--without-timestamp) WITHOUT_TIMESTAMP=yes ;;
+	--with-timestamp) WITHOUT_TIMESTAMP= ;;
 	--uid-max) UID_MAX=$var ;;
 	--gid-max) UID_MAX=$var ;;
 	--help|-h) usage ;;
