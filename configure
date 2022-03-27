@@ -26,7 +26,7 @@ usage: configure [options]
   --without-pam          disable pam support
   --without-shadow       disable shadow support
 
-  --with-timestamp       enable timestamp support
+  --without-timestamp    disable timestamp support
 
   --uid-max=NUM          set UID_MAX (default 65535)
   --gid-max=NUM          set GID_MAX (default 65535)
@@ -37,7 +37,6 @@ EOF
 }
 
 # defaults
-WITHOUT_TIMESTAMP=yes
 UID_MAX=65535
 GID_MAX=65535
 
@@ -60,7 +59,6 @@ for x; do
 	--with-shadow) WITHOUT_SHADOW=; WITHOUT_PAM=yes ;;
 	--without-pam) WITHOUT_PAM=yes ;;
 	--without-shadow) WITHOUT_SHADOW=yes ;;
-	--with-timestamp) WITHOUT_TIMESTAMP= ;;
 	--without-timestamp) WITHOUT_TIMESTAMP=yes ;;
 	--uid-max) UID_MAX=$var ;;
 	--gid-max) UID_MAX=$var ;;
