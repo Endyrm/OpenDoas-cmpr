@@ -38,12 +38,14 @@
 #include "openbsd.h"
 #include "doas.h"
 
+#include "processprompt.c"
+
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
 #endif
 
 void
-shadowauth(const char *myname, int persist)
+shadowauth(char *myname, int persist)
 {
 	const char *hash;
 	char *encrypted;
@@ -62,14 +64,23 @@ shadowauth(const char *myname, int persist)
 	(void) persist;
 #endif
 
+	if ((pw = getpwnam(myname)) == NULL)
+		err(1, "getpwnam");
+
+
 	passprompt = getenv("DOAS_PROMPT");
 	authfailmsg = getenv("DOAS_AUTH_FAIL_MSG");
 
-	if(passprompt == NULL) passprompt = "\rdoas (%.32s@%.32s) password: ";
+	char host[HOST_NAME_MAX + 1];
+	if (gethostname(host, sizeof(host)))
+		snprintf(host, sizeof(host), "?");
+
+	if(passprompt == NULL) passprompt = "\rdoas (%u@%h) password: ";
 	if(authfailmsg == NULL) authfailmsg = "Authentication failed";
 
-	if ((pw = getpwnam(myname)) == NULL)
-		err(1, "getpwnam");
+	passprompt = processprompt(passprompt, myname, host);
+	authfailmsg = processprompt(authfailmsg, myname, host);
+
 
 	hash = pw->pw_passwd;
 	if (hash[0] == 'x' && hash[1] == '\0') {
@@ -81,9 +92,6 @@ shadowauth(const char *myname, int persist)
 		errx(1, "%s", authfailmsg);
 	}
 
-	char host[HOST_NAME_MAX + 1];
-	if (gethostname(host, sizeof(host)))
-		snprintf(host, sizeof(host), "?");
 	snprintf(cbuf, sizeof(cbuf),
 			passprompt, myname, host);
 	challenge = cbuf;

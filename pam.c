@@ -40,6 +40,8 @@
 #include "openbsd.h"
 #include "doas.h"
 
+#include "processprompt.c"
+
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
 #endif
@@ -244,14 +246,23 @@ pamauth(const char *user, const char *myname, int interactive, int nopass, int p
 	(void) persist;
 #endif
 
+	if (!user || !myname)
+		errx(1, "%s", authfailmsg);
+
+
 	passprompt = getenv("DOAS_PROMPT");
 	authfailmsg = getenv("DOAS_AUTH_FAIL_MSG");
 
-	if(passprompt == NULL) passprompt = "\rdoas (%.32s@%.32s) password: ";
+	char host[HOST_NAME_MAX + 1];
+	if (gethostname(host, sizeof(host)))
+		snprintf(host, sizeof(host), "?");
+
+	if(passprompt == NULL) passprompt = "\rdoas (%u@%h) password: ";
 	if(authfailmsg == NULL) authfailmsg = "Authentication failed";
 
-	if (!user || !myname)
-		errx(1, "%s", authfailmsg);
+	passprompt = processprompt(passprompt, myname, host);
+	authfailmsg = processprompt(authfailmsg, myname, host);
+
 
 	ret = pam_start(PAM_SERVICE_NAME, myname, &conv, &pamh);
 	if (ret != PAM_SUCCESS)

@@ -49,7 +49,7 @@ void pamauth(const char *, const char *, int, int, int);
 #endif
 
 #ifdef USE_SHADOW
-void shadowauth(const char *, int);
+void shadowauth(char *, int);
 #endif
 
 #ifdef USE_TIMESTAMP
